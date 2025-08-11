@@ -1,1 +1,5 @@
 
+[Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("username:password"))
+
+proxy=http://dXNlcm5hbWU6cGFzc3dvcmQ=@proxy.example.com:8080
+https-proxy=http://dXNlcm5hbWU6cGFzc3dvcmQ=@proxy.example.com:8080
