@@ -1,2 +1,12 @@
 
 GIT_SSH_COMMAND="ssh -i ~/.ssh/my_custom_key" git clone git@github.com:user/repo.git
+
+git config --global core.longpaths true
+
+git clone -c core.symlinks=false -c core.fscache=true -c core.preloadindex=true git@your.git.server:group/repo.git
+
+GIT_LFS_SKIP_SMUDGE=1 git clone --no-recurse-submodules git@your.git.server:group/repo.git
+cd repo
+# Later, after confirming it works:
+git lfs pull
+git submodule update --init --recursive
