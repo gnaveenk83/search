@@ -1,1 +1,68 @@
 
+# Bruno Post-Response Scripts to Capture Response Data
+
+## 1. Capture from JSON body
+# Example JSON:
+# { "access_token": "abc123", "user": { "id": 42 } }
+
+// Post Response → Script
+bru.setVar("token", res.body.access_token);
+bru.setVar("userId", res.body.user?.id);
+
+// Log to console
+console.log("token:", bru.getVar("token"));
+console.log("userId:", bru.getVar("userId"));
+
+// Usage in headers/body:
+# Authorization: Bearer {{token}}
+# X-User-Id: {{userId}}
+
+------------------------------------------------------------
+
+## 2. Capture from raw/text response
+const raw = typeof res.body === "string" ? res.body : JSON.stringify(res.body);
+bru.setVar("token", raw.trim());
+
+------------------------------------------------------------
+
+## 3. Capture with regex from text/HTML
+const text = typeof res.body === "string" ? res.body : JSON.stringify(res.body);
+const m = text.match(/token=([A-Za-z0-9\-_\.]+)/);
+if (m) bru.setVar("token", m[1]);
+
+------------------------------------------------------------
+
+## 4. Capture from headers
+bru.setVar("rateLimit", res.headers["x-ratelimit-remaining"]);
+bru.setVar("setCookie", res.headers["set-cookie"]);
+
+------------------------------------------------------------
+
+## 5. Set environment variable instead of runtime variable
+env.set("token", res.body.access_token);   // saves to the selected environment
+
+------------------------------------------------------------
+
+## 6. Pre-Request Script to use captured token
+const token = bru.getVar("token");
+if (token) {
+  request.headers["Authorization"] = `Bearer ${token}`;
+}
+
+------------------------------------------------------------
+
+## 7. Minimal login + use token example
+# Login request → Post Response Script
+bru.setVar("token", res.body.access_token);
+
+# Next request → Header
+Authorization: Bearer {{token}}
+
+------------------------------------------------------------
+
+## 8. Running via CLI and grabbing values
+# Post Response Script
+console.log("returned-id:" + res.body.id);
+
+# Shell
+bru run path/to/request.bru | grep -oP 'returned-id:\K.*'
