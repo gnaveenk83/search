@@ -1,1 +1,39 @@
+  private final MyValidator validator = new MyValidator();
 
+  private ConstraintValidatorContext ctx;
+  private ConstraintValidatorContext.ConstraintViolationBuilder builder;
+  private ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext nodeCtx;
+
+  @BeforeEach
+  void setUp() {
+    ctx = mock(ConstraintValidatorContext.class);
+    builder = mock(ConstraintValidatorContext.ConstraintViolationBuilder.class);
+    nodeCtx = mock(ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext.class);
+
+    // Common stubs that avoid NPEs
+    when(ctx.getDefaultConstraintMessageTemplate()).thenReturn("{my.message}");
+
+    // The critical chain:
+    // ctx.buildConstraintViolationWithTemplate("...") -> builder
+    // builder.addPropertyNode("field") -> nodeCtx
+    // nodeCtx.addConstraintViolation() -> ctx
+    when(ctx.buildConstraintViolationWithTemplate(anyString())).thenReturn(builder);
+    when(builder.addPropertyNode(anyString())).thenReturn(nodeCtx);
+    when(nodeCtx.addConstraintViolation()).thenReturn(ctx);
+
+    // If your validator calls these:
+    doNothing().when(ctx).disableDefaultConstraintViolation();
+  }
+
+  @Test
+  void validates_something() {
+    var value = new MyBean(/* ... */);
+
+    boolean ok = validator.isValid(value, ctx);
+
+    // assertions...
+    verify(ctx).buildConstraintViolationWithTemplate(anyString());
+    verify(builder).addPropertyNode("fieldName"); // adjust if needed
+    verify(nodeCtx).addConstraintViolation();
+    verify(ctx).disableDefaultConstraintViolation();
+  }
