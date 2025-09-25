@@ -1,0 +1,103 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>kafka-avro-validator</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+    </properties>
+
+    <dependencies>
+        <!-- Avro core -->
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>1.11.3</version>
+        </dependency>
+
+        <!-- Jackson (optional, for preprocessing JSON like dates) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.17.2</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Runnable fat JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.example.validator.AvroJsonValidatorApp</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>single</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+
+
+
+package com.example.validator;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.Decoder;
+import org.apache.avro.io.DecoderFactory;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class AvroJsonValidatorApp {
+
+    public static void main(String[] args) throws Exception {
+        // Args: 0 = schema path, 1 = json path
+        String schemaPath = args.length > 0 ? args[0] : "src/main/resources/user.avsc";
+        String jsonPath   = args.length > 1 ? args[1] : "src/main/resources/input.json";
+
+        // Load Avro schema
+        String schemaStr = Files.readString(Path.of(schemaPath));
+        Schema schema = new Schema.Parser().parse(schemaStr);
+
+        // Load JSON payload from file
+        String jsonStr = Files.readString(Path.of(jsonPath));
+
+        System.out.printf("Validating file: %s%n", jsonPath);
+        validate(schema, jsonStr);
+    }
+
+    private static void validate(Schema schema, String json) {
+        try {
+            var reader = new GenericDatumReader<GenericRecord>(schema);
+            Decoder decoder = DecoderFactory.get().jsonDecoder(schema, json);
+            GenericRecord record = reader.read(null, decoder);
+            System.out.println("✅ Valid: " + record);
+        } catch (IOException e) {
+            System.err.println("❌ Invalid JSON: " + e.getMessage());
+        }
+    }
+}
